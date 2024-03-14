@@ -15,7 +15,8 @@ use crate::models::Data;
 use crate::models::IPReport;
 use chrono::{DateTime, NaiveDateTime, Utc,Local, TimeZone};
 use std::net::Ipv4Addr;
-
+use sqlx::types::Json;
+use uuid::Uuid;
 
 mod crud;
 mod models;
@@ -26,12 +27,13 @@ async fn main() -> Result<(), Box<dyn Error>>
     dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("MAILCOACH_API_TOKEN must be set.");
     let pool = sqlx::postgres::PgPool::connect(&database_url).await?;
-    let timed = Utc::now();
+    let timed = Utc::now().naive_utc();;
+    let id = Uuid::new_v4();
     //migration 
     //sqlx::migrate!("./migrations").run(&pool).await?;
     let scan_results =   Data {
-            udp_results: vec![IPReport {ip:"127.0.0.1".parse::<Ipv4Addr>(),port:[8881]}], // Add your actual Report instances
-            tcp_results: vec![IPReport {ip:"127.0.0.1".parse::<Ipv4Addr>(),port:[88,123,111]}],
+            udp_results: vec![IPReport {ip:"127.0.0.1".parse::<Ipv4Addr>().expect("REASON"),ports:[8881].to_vec()}], // Add your actual Report instances
+            tcp_results: vec![IPReport {ip:"127.0.0.1".parse::<Ipv4Addr>().expect("REASON"),ports:[88,123,111].to_vec()}],
             domain_results: vec!["qotaq.kz".to_string()],
             osint: vec![], // Assuming `T` is `SomeType` for this example
             cve: vec![vec![]],
@@ -65,9 +67,15 @@ async fn main() -> Result<(), Box<dyn Error>>
 
     let new_book = models::Report {
         scanned:timed,
-        scan_data:  &scan_results
+        id:id.to_string(), 
+        scan_data:  Json(scan_results)
     };
     //crud::create(&new_book,&pool).await?;
-    println!("{:?}",crud::read(&pool).await?);
+    let dataset = crud::read(&pool).await?;
+    let extracted  = &dataset[0];
+
+  
+    println!("{:?}",extracted);
+
     Ok(())
 }

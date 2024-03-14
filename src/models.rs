@@ -6,7 +6,7 @@ use std::time::Duration;
 use std::net::Ipv4Addr;
 use chrono;
 use serde_json::{Value as JsonValue, to_value};
-use sqlx::{Encode, TypeInfo};
+use sqlx::{Encode, TypeInfo,types};
 use sqlx::Type;
 use serde_json::json;
 use chrono::{DateTime, Local};
@@ -15,31 +15,35 @@ use chrono::{DateTime, Local};
 
 #[derive(Debug,FromRow,Deserialize,Serialize)]
 pub struct Report {
-    pub scan_data: Data,
-    pub scanned: Option<NaiveDateTime>,
-    pub scan_counter: i8 
+    #[serde(with = "sqlx::types::Json")]
+    pub scan_data: types::Json<Data>,
+    pub scanned: NaiveDateTime,
+    pub id : String
+
+    //pub scan_counter: i8 
 
 }
 
 #[derive(Debug,FromRow,Deserialize,Serialize)]
 pub struct IPReport {
-    ip: Ipv4Addr,
-    ports: Vec<u16>,
+    pub ip: Ipv4Addr,
+    pub ports: Vec<u16>,
 }
-#[derive(Debug, Deserialize, Serialize, sqlx::Type)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Data{
-    udp_results: Vec<IPReport>,
-    tcp_results: Vec<IPReport>,
-    domain_results: Vec<String>,
-    osint: Vec<String>,
-    cve: Vec<Vec<Cve>>,
-    services: Vec<Service>,
-    dns_records: Vec<DNSER>,
-    tls_res: Vec<TSL_RESPONSE>,
-    xss_sex: Vec<(bool,Responds)>,
-    hostInjection: Vec<Responds_with_cookies<Vec<Headers>>>,
-    SQL_results: Vec<Responds>
+   pub  udp_results: Vec<IPReport>,
+   pub  tcp_results: Vec<IPReport>,
+   pub  domain_results: Vec<String>,
+   pub  osint: Vec<String>,
+   pub  cve: Vec<Vec<Cve>>,
+   pub  services: Vec<Service>,
+   pub  dns_records: Vec<DNSER>,
+   pub  tls_res: Vec<TSL_RESPONSE>,
+   pub  xss_sex: Vec<(bool,Responds)>,
+   pub  hostInjection: Vec<Responds_with_cookies<Vec<Headers>>>,
+   pub  SQL_results: Vec<Responds>
 }
+
 
 
 
@@ -166,10 +170,10 @@ pub struct DNSER {
 
 #[derive(Debug, Serialize, Deserialize,FromRow)] // Add Serialize here
 pub struct TSL_RESPONSE {
-    certificates: Vec<String>,
-    version: String,
-    alpn_protocol: String,
-    handshaking: bool,
-    cipher_suite: String,
-    vulnerabilities: Vec<String>,
+   pub  certificates: Vec<String>,
+   pub  version: String,
+   pub  alpn_protocol: String,
+   pub  handshaking: bool,
+   pub  cipher_suite: String,
+   pub  vulnerabilities: Vec<String>,
 }

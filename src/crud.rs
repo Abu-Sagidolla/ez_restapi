@@ -1,4 +1,3 @@
-
 use crate::models::Report;
 use std::error::Error;
 use sqlx::Row;
@@ -9,69 +8,46 @@ use chrono::DateTime;
 use chrono::Utc;
 use chrono::TimeZone;
 use sqlx::types::Json;
+use chrono::NaiveDateTime;
+use crate::models::Data;
 
 pub async fn create(report:&Report,pool: &sqlx::PgPool) -> Result<(), Box<dyn Error>> {
-     let query = "INSERT INTO Scanreport (scandata,scanned) VALUES ($1,$2) ";
-     let scanned_utc: Option<DateTime<Utc>> = report.scanned.map(|dt| Utc.from_utc_datetime(&dt));
+     let query = "INSERT INTO Scanreport (id,scandata,scanned) VALUES ($1,$2,$3) ";
+
      sqlx::query(query)
-         .bind(Json(serde_json::to_value(&report.scan_data).unwrap()))
-         .bind(scanned_utc)
+         .bind(&report.id)
+         .bind(&report.scan_data)
+         .bind(report.scanned)
          .execute(pool).await?;
 
     Ok(())
 }
-
-//just little bit complicated way to create book
-/*async fn  insert_transaction(
-	book: Report, conn: &sqlx::PgPool
-) -> Result<(),Box<dyn Error>>{
-     let mut txn = conn.begin().await?;
-
-     let author_q = r"
-        INSERT INTO author (name) VALUES ($1) RETURNING id
-     ";
-
-     let book_q = r"
-       INSERT INTO book (title,author_id,isbn)
-       VALUES ($1,$2,$3)";
-
-    let author_id: (i64,) = sqlx::query_as(author_q)
-        .bind(&book.author)
-        .fetch_one(&mut txn)
-        .await?;
-     sqlx::query(book_q)
-     .bind(&book.title)
-     .bind(author_id.0)
-     .bind(&book.isbn)
-     .execute(&mut txn).await?; 
-
-     txn.commit().await?;
-     Ok(())
-} */
 
 
 pub async fn update(report:&Report,pool: &sqlx::PgPool) -> Result<(), Box<dyn Error>> {
-     let query = "UPDATE INTO Scanreport (scandata,scanned) VALUES ($1,$2) ";
+     let query = "UPDATE INTO Scanreport (scandata,scanned) VALUES ($1,$2,$3) ";
 
-     let scanned_utc: Option<DateTime<Utc>> = report.scanned.map(|dt| Utc.from_utc_datetime(&dt));
      sqlx::query(query)
-         .bind(serde_json::to_value(&report.scan_data).unwrap())
-         .bind(scanned_utc)
+         .bind(&report.id)
+         .bind(&report.scan_data)
+         .bind(report.scanned)
          .execute(pool).await?;
 
     Ok(())
 }
 
-pub async fn read(conn: &sqlx::PgPool) -> Result<Vec<Report>, Box<dyn Error>>{
-	let q = "SELECT * FROM Scanreport";
-	let query = sqlx::query(q);
+pub async fn read(conn: &sqlx::PgPool) -> Result<Vec<Report>, Box<dyn Error>> {
+    let q = "SELECT * FROM Scanreport";
+    let reports = sqlx::query(q).fetch_all(conn).await?;
 
-    let reports = query.fetch_all(conn).await?;
-	/*while let Some(row) = rows.try_next().await? {
-		books.push(Book {
-		title: row.get("title"),
-		author: row.get("author"),
-		isb: row.get("isbn")
-	})};*/
-	Ok(reports)
+    let mut output: Vec<Report> = Vec::new();
+    for row in reports.iter() {
+        let scan_data: Json<Data> = row.try_get("scandata")?;
+        let scanned: NaiveDateTime = row.try_get("scanned")?;
+        let id = row.try_get("id")?;
+        //println!("{:?}", scan_data); // For debugging
+        output.push(Report { scan_data, scanned,id });
+    }
+
+    Ok(output)
 }

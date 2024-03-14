@@ -1,7 +1,7 @@
-CREATE SEQUENCE scan_counter;
+--CREATE SEQUENCE scan_counter;
 
 CREATE TABLE Scanreport (
-    id SERIAL PRIMARY KEY,
+    id TEXT,
     scandata JSONB,
     scanned TIMESTAMP,
     scan_counter INTEGER DEFAULT nextval('scan_counter')
