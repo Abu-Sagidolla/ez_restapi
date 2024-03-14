@@ -1,25 +1,29 @@
 
-use crate::models::Book;
+use crate::models::Report;
 use std::error::Error;
 use sqlx::Row;
 use sqlx::FromRow;
 use sqlx::query;
+use serde_json::json;
+use chrono::DateTime;
+use chrono::Utc;
+use chrono::TimeZone;
+use sqlx::types::Json;
 
-pub async fn create(book:&Book,pool: &sqlx::PgPool) -> Result<(), Box<dyn Error>> {
-     let query = "INSERT INTO scans (title,author,isbn) VALUES ($1,$2,$3) ";
-
+pub async fn create(report:&Report,pool: &sqlx::PgPool) -> Result<(), Box<dyn Error>> {
+     let query = "INSERT INTO Scanreport (scandata,scanned) VALUES ($1,$2) ";
+     let scanned_utc: Option<DateTime<Utc>> = report.scanned.map(|dt| Utc.from_utc_datetime(&dt));
      sqlx::query(query)
-         .bind(&book.title)
-         .bind(&book.author)
-         .bind(&book.isbn)
+         .bind(Json(serde_json::to_value(&report.scan_data).unwrap()))
+         .bind(scanned_utc)
          .execute(pool).await?;
 
     Ok(())
 }
 
 //just little bit complicated way to create book
-async fn  insert_transaction(
-	book: Book, conn: &sqlx::PgPool
+/*async fn  insert_transaction(
+	book: Report, conn: &sqlx::PgPool
 ) -> Result<(),Box<dyn Error>>{
      let mut txn = conn.begin().await?;
 
@@ -43,31 +47,31 @@ async fn  insert_transaction(
 
      txn.commit().await?;
      Ok(())
-} 
+} */
 
 
-pub async fn update(book:&Book,pool: &sqlx::PgPool) -> Result<(), Box<dyn Error>> {
-     let query = "UPDATE INTO scans (title,author,isbn) VALUES ($1,$2,$3) ";
+pub async fn update(report:&Report,pool: &sqlx::PgPool) -> Result<(), Box<dyn Error>> {
+     let query = "UPDATE INTO Scanreport (scandata,scanned) VALUES ($1,$2) ";
 
+     let scanned_utc: Option<DateTime<Utc>> = report.scanned.map(|dt| Utc.from_utc_datetime(&dt));
      sqlx::query(query)
-         .bind(&book.title)
-         .bind(&book.author)
-         .bind(&book.isbn)
+         .bind(serde_json::to_value(&report.scan_data).unwrap())
+         .bind(scanned_utc)
          .execute(pool).await?;
 
     Ok(())
 }
 
-pub async fn read(conn: &sqlx::PgPool) -> Result<Vec<Book>, Box<dyn Error>>{
-	let q = "SELECT * FROM scans";
-	let query = sqlx::query_as::<_,Book>(q);
+pub async fn read(conn: &sqlx::PgPool) -> Result<Vec<Report>, Box<dyn Error>>{
+	let q = "SELECT * FROM Scanreport";
+	let query = sqlx::query(q);
 
-    let books = query.fetch_all(conn).await?;
+    let reports = query.fetch_all(conn).await?;
 	/*while let Some(row) = rows.try_next().await? {
 		books.push(Book {
 		title: row.get("title"),
 		author: row.get("author"),
 		isb: row.get("isbn")
 	})};*/
-	Ok(books)
+	Ok(reports)
 }

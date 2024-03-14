@@ -13,3 +13,6 @@ log = "0.4.21"
 sqlx-cli = "0.7.4"
 futures = "0.3.30"
 futures-util = "0.3.30"
+chrono = {version = "0.4.35", features = ["serde"]}
+serde = {version = "1.0.197",features=["derive"]}
+serde_json = "1.0.114"

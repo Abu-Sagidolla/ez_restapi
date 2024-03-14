@@ -1,7 +1,8 @@
-create table scans (
-   title varchar not null,
-   author varchar not null,
-   isbn varchar not null
-);
+CREATE SEQUENCE scan_counter;
 
-create unique index boox_isbn_idx on scans (isbn);
+CREATE TABLE Scanreport (
+    id SERIAL PRIMARY KEY,
+    scandata JSONB,
+    scanned TIMESTAMP,
+    scan_counter INTEGER DEFAULT nextval('scan_counter')
+);
